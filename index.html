@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulador da Dispensa Premiada</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Lexend:wght@500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: coluna única e clara. Passo 1 ano, passo 2 perguntas, resumo, depois uma tabela de notas (vira cartões no celular). */
+:root{
+  --bg:#ffffff;
+  --soft:#f5f7fa;
+  --ink:#1c2433;
+  --muted:#6b7587;
+  --line:#e6e9ef;
+  --accent:#2457a7;
+  --accent-soft:#eaf0fa;
+  --ok:#17804a; --ok-bg:#e8f5ee;
+  --warn:#a86500; --warn-bg:#fdf3e1;
+  --bad:#c0352b; --bad-bg:#fcebe9;
+  --font-display:"Lexend", system-ui, sans-serif;
+  --font-body:"Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: light;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.5}
+.wrap{max-width:1000px;margin:0 auto;padding:32px 16px 56px;display:flex;flex-direction:column;gap:28px}
+h1,h2{font-family:var(--font-display);font-weight:600;margin:0;line-height:1.2;text-wrap:balance}
+h1{font-size:1.7rem;color:var(--accent)}
+h2{font-size:1.05rem}
+.lede{margin:8px 0 0;color:var(--muted);max-width:62ch}
+.step{display:flex;flex-direction:column;gap:12px}
+.step-label{font-size:.8rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+
+/* seletores */
+.choices{display:flex;flex-wrap:wrap;gap:8px}
+.choices input{position:absolute;opacity:0;pointer-events:none}
+.choices label{padding:9px 18px;border:1px solid var(--line);border-radius:999px;cursor:pointer;font-weight:700;color:var(--muted);background:var(--bg);user-select:none}
+.choices input:checked+label{border-color:var(--accent);background:var(--accent);color:#fff}
+.choices input:focus-visible+label{outline:3px solid var(--accent-soft);outline-offset:2px}
+.choices.yn input:checked+label.yes{background:var(--bad);border-color:var(--bad)}
+.choices.yn input:checked+label.no{background:var(--ok);border-color:var(--ok)}
+
+.qs{display:flex;flex-direction:column}
+.q{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid var(--line)}
+.q:first-child{border-top:1px solid var(--line)}
+.q p{margin:0;max-width:56ch}
+
+/* resumo */
+.summary{background:var(--soft);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:14px}
+.summary-top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px}
+.headline{font-family:var(--font-display);font-size:1.3rem;font-weight:600;margin:0;text-wrap:balance}
+.headline .n{color:var(--ok);font-variant-numeric:tabular-nums}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:.88rem;padding:4px 10px;border-radius:999px;background:var(--bg);color:var(--muted);text-decoration:none}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--line);flex:none}
+.s-ok .dot{background:var(--ok)} .s-pend .dot{background:var(--warn)} .s-bad .dot,.s-blocked .dot,.s-err .dot{background:var(--bad)}
+.chip.s-ok{color:var(--ok)} .chip.s-pend{color:var(--warn)} .chip.s-bad,.chip.s-blocked,.chip.s-err{color:var(--bad)}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+button{font:inherit;font-size:.92rem;font-weight:700;padding:8px 14px;border-radius:9px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+button:focus-visible{outline:3px solid var(--accent-soft);outline-offset:2px}
+.toast{font-size:.88rem;color:var(--ok);min-height:1.3em;margin:0}
+
+/* tabela de notas */
+.table{display:flex;flex-direction:column}
+.row{display:grid;grid-template-columns:minmax(150px,1.5fr) repeat(3,62px) 64px 18px repeat(3,62px) 56px minmax(150px,1fr);gap:8px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.head{font-size:.78rem;font-weight:700;color:var(--muted);border-bottom:2px solid var(--line);padding-top:0}
+.head span{text-align:center}
+.head span:first-child,.head span:last-child{text-align:left}
+.head .grp{color:var(--accent)}
+.name{font-weight:700}
+.row input{width:100%;font:inherit;font-variant-numeric:tabular-nums;text-align:center;padding:7px 4px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+.row input::placeholder{color:#c3c9d4}
+.row input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.row input[aria-invalid="true"]{border-color:var(--bad);background:var(--bad-bg)}
+.sum{font-variant-numeric:tabular-nums;text-align:center;font-weight:700;color:var(--muted)}
+.sum.ok{color:var(--ok)} .sum.bad{color:var(--bad)}
+.status{display:flex;align-items:center;gap:7px;font-size:.9rem;font-weight:700;color:var(--muted)}
+.status.s-ok{color:var(--ok)} .status.s-pend{color:var(--warn)} .status.s-bad,.status.s-blocked,.status.s-err{color:var(--bad)}
+.msg{grid-column:1/-1;margin:0;font-size:.9rem;padding:8px 12px;border-radius:8px;background:var(--soft);color:var(--ink)}
+.msg:empty{display:none}
+.msg.s-ok{background:var(--ok-bg)} .msg.s-pend{background:var(--warn-bg)} .msg.s-bad,.msg.s-blocked,.msg.s-err{background:var(--bad-bg)}
+.sep{width:1px;height:28px;background:var(--line);justify-self:center}
+.flab{display:none}
+
+.empty{padding:28px;text-align:center;color:var(--muted);background:var(--soft);border-radius:16px;margin:0}
+.rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px 20px;font-size:.88rem;color:var(--muted);margin:0;padding:0;list-style:none}
+.rules li{padding-left:14px;position:relative}
+.rules li::before{content:"";position:absolute;left:0;top:.6em;width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.rules b{color:var(--ink)}
+footer{font-size:.85rem;color:var(--muted)}
+.how{display:flex;flex-direction:column;gap:16px;padding-top:8px;border-top:1px solid var(--line)}
+.how h3{font-family:var(--font-display);font-size:1rem;font-weight:600;margin:0 0 4px}
+.how p{margin:0 0 6px;max-width:65ch}
+.how-intro{font-size:1.02rem}
+.how-steps{list-style:none;counter-reset:s;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.how-steps li{counter-increment:s;background:var(--soft);border-radius:14px;padding:16px 16px 12px 52px;position:relative}
+.how-steps li::before{content:counter(s);position:absolute;left:16px;top:15px;width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;font-weight:700;font-size:.9rem;display:grid;place-items:center}
+.calc{font-variant-numeric:tabular-nums;font-size:.92rem;color:var(--muted)}
+.calc b{color:var(--ink)}
+.how-notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.how-notes>div{border:1px solid var(--line);border-radius:14px;padding:16px}
+.lede a{color:var(--accent);font-weight:700}
+
+/* celular: cada disciplina vira um bloco */
+@media (max-width:780px){
+  .head{display:none}
+  .row{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px 8px;padding:16px 0}
+  .name{grid-column:1/3;order:-2;font-size:1.05rem}
+  .status{grid-column:3;order:-1;justify-content:flex-end;font-size:.82rem;text-align:right}
+  .sep{display:none}
+  .cell{display:flex;flex-direction:column;gap:2px}
+  .flab{display:block;font-size:.75rem;color:var(--muted);text-align:center}
+  .sum{grid-column:1/-1;text-align:left;font-size:.85rem;font-weight:400}
+  .sum b{font-weight:700}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Simulador da Dispensa Premiada</h1>
+    <p class="lede">Escolha seu ano, responda às duas perguntas e digite suas notas. O simulador mostra em quais disciplinas você fica dispensado da AV2 e, se faltar alguma nota, quanto você precisa tirar. <a href="#como-calcula">Veja como o cálculo é feito</a>.</p>
+  </header>
+
+  <section class="step" aria-labelledby="l1">
+    <span class="step-label" id="l1">1 · Seu ano</span>
+    <div class="choices" role="radiogroup" aria-labelledby="l1" id="years"></div>
+  </section>
+
+  <section class="step" aria-labelledby="l2">
+    <span class="step-label" id="l2">2 · Critérios gerais</span>
+    <div class="qs">
+      <div class="q">
+        <p>Você recebeu alguma <b>advertência escrita</b> neste ano letivo?</p>
+        <div class="choices yn" role="radiogroup" aria-label="Advertência escrita">
+          <input type="radio" name="adv" id="adv-s" value="s"><label class="yes" for="adv-s">Sim</label>
+          <input type="radio" name="adv" id="adv-n" value="n"><label class="no" for="adv-n">Não</label>
+        </div>
+      </div>
+      <div class="q">
+        <p>Você tem alguma <b>falta sem justificativa</b> no 4º bimestre?</p>
+        <div class="choices yn" role="radiogroup" aria-label="Falta sem justificativa">
+          <input type="radio" name="falta" id="falta-s" value="s"><label class="yes" for="falta-s">Sim</label>
+          <input type="radio" name="falta" id="falta-n" value="n"><label class="no" for="falta-n">Não</label>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="summary" aria-labelledby="hl">
+    <div class="summary-top">
+      <p class="headline" id="hl" aria-live="polite"></p>
+      <div class="btns">
+        <button class="primary" type="button" id="copy">Copiar resultado</button>
+        <button type="button" id="example">Ver exemplo</button>
+        <button type="button" id="clear">Limpar</button>
+      </div>
+    </div>
+    <div class="chips" id="chips"></div>
+    <p class="toast" id="toast" aria-live="polite"></p>
+  </section>
+
+  <section class="step" aria-labelledby="l3">
+    <span class="step-label" id="l3">3 · Suas notas</span>
+    <ul class="rules">
+      <li>Soma dos 3 primeiros bimestres: <b>mínimo 24,0</b></li>
+      <li>4º bimestre (Atividades + Av1 + Simulado): <b>mínimo 3,6 de 6,0</b></li>
+      <li>Sem arredondamento: <b>23,9 não vira 24</b></li>
+    </ul>
+    <div id="table"></div>
+  </section>
+
+  <section class="how" id="como-calcula" aria-labelledby="l4">
+    <span class="step-label" id="l4">Como o cálculo é feito</span>
+    <p class="how-intro">A dispensa da AV2 é analisada <b>disciplina por disciplina</b>. Para ser dispensado numa disciplina, você precisa cumprir as <b>quatro condições ao mesmo tempo</b>. Basta uma falhar para fazer a AV2.</p>
+    <ol class="how-steps">
+      <li><h3>Sem advertência escrita</h3><p>Se você recebeu advertência escrita em qualquer momento do ano letivo, não há dispensa em nenhuma disciplina.</p></li>
+      <li><h3>Sem falta sem justificativa no 4º bimestre</h3><p>Uma única falta sem justificativa no 4º bimestre também impede a dispensa em todas as disciplinas. Faltas justificadas não contam.</p></li>
+      <li><h3>Bimestres somando 24,0 ou mais</h3><p>Some as notas do 1º, 2º e 3º bimestres (cada uma vale até 10). O total precisa ser <b>igual ou maior que 24,0</b>, o que equivale a média 8,0.</p><p class="calc">8,0 + 7,5 + 8,5 = <b>24,0</b> → atinge</p><p class="calc">8,0 + 8,0 + 7,9 = <b>23,9</b> → não atinge</p></li>
+      <li><h3>4º bimestre com pelo menos 3,6</h3><p>Some os três instrumentos do 4º bimestre: Atividades Educacionais (até 1,0), Av1 (até 3,0) e Simulado (até 2,0). O total vale 6,0, e você precisa de <b>pelo menos 60%</b>, ou seja, 3,6.</p><p class="calc">0,8 + 2,2 + 0,6 = <b>3,6</b> → atinge</p><p class="calc">1,0 + 2,0 + 0,5 = <b>3,5</b> → não atinge</p></li>
+    </ol>
+    <div class="how-notes">
+      <div><h3>Não existe arredondamento</h3><p>As notas são usadas exatamente como foram lançadas. 23,9 continua 23,9, e 3,59 continua 3,59. Nos dois casos, não há dispensa.</p></div>
+      <div><h3>Quando ainda falta uma nota</h3><p>Se um campo fica em branco, o simulador calcula o mínimo que você precisa tirar nele. Exemplo: com Atividades 0,8 e Av1 1,7, você já tem 2,5. Faltam 1,1 para chegar a 3,6, então precisa de pelo menos <b>1,1 no Simulado</b>. Se nem a nota máxima for suficiente, o simulador avisa que não dá mais para alcançar.</p></div>
+    </div>
+  </section>
+
+  <footer>Isto é uma simulação. O resultado oficial é o divulgado pela escola. Suas notas ficam salvas apenas neste aparelho.</footer>
+</div>
+
+<script>
+(function(){
+  const YEARS = {
+    "6º ano":["Artes","Ciências","Educação Física","Geografia","História","Inglês","LIV – Projeto de Vida","Matemática I","Português I","Redação"],
+    "7º ano":["Artes","Ciências","Educação Física","Emp./Ed. Financeira","Geografia","História","Inglês","LIV – Projeto de Vida","Matemática I","Português I","Redação"],
+    "8º ano":["Artes","Ciências","Educação Física","Emp./Ed. Financeira","Geografia","História","Inglês","LIV – Projeto de Vida","Matemática I","Matemática II","Português I","Redação"],
+    "9º ano":["Artes","Biologia","Educação Física","Física","Geografia","História","Inglês","LIV – Projeto de Vida","Matemática I","Matemática II","Português I","Química","Redação"]
+  };
+  const BIM = [{k:"b1",l:"1º bim.",max:10},{k:"b2",l:"2º bim.",max:10},{k:"b3",l:"3º bim.",max:10}];
+  const Q4  = [{k:"at",l:"Ativ.",full:"Atividades",max:1},{k:"av1",l:"Av1",full:"Av1",max:3},{k:"sim",l:"Simul.",full:"Simulado",max:2}];
+  const BIM_T = 2400, Q4_T = 360;
+  const KEY = "dispensa-premiada-v2";
+
+  function parse(raw, max){
+    const s = String(raw||"").trim().replace(",", ".");
+    if(s==="") return {v:null};
+    if(!/^\d{1,2}(\.\d{0,2})?$/.test(s)) return {err:"Use números, ex.: 7,5"};
+    const [i,d=""] = s.split(".");
+    const c = parseInt(i,10)*100 + parseInt((d+"00").slice(0,2),10);
+    if(c > max*100) return {err:"Máximo "+fmt(max*100)};
+    return {v:c};
+  }
+  function fmt(c){ return (c/100).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:2}); }
+  function joinN(a){ return a.length<=1 ? (a[0]||"") : a.slice(0,-1).join(", ")+" e "+a[a.length-1]; }
+  const slug = n => n.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+
+  function group(vals, defs, target){
+    let sum=0, blanks=[], cap=0;
+    defs.forEach((d,i)=>{ if(vals[i]===null){ blanks.push(d); cap+=d.max*100; } else sum+=vals[i]; });
+    const r={sum,blanks};
+    if(!blanks.length){ r.state = sum>=target?"ok":"bad"; r.falta=target-sum; return r; }
+    const need=target-sum;
+    if(need<=0){ r.state="ok"; return r; }
+    if(need>cap){ r.state="bad"; r.impossible=true; return r; }
+    r.state="pend"; r.need=need; return r;
+  }
+
+  function evaluate(d, elim){
+    const bv=BIM.map(f=>d.p[f.k]), qv=Q4.map(f=>d.p[f.k]);
+    if([...BIM,...Q4].some(f=>d.e[f.k])) return {s:"err",label:"Confira a nota",msg:"Há uma nota inválida no campo marcado em vermelho."};
+    if(![...bv,...qv].some(v=>v!==null)) return {s:"empty",label:"Sem notas",msg:""};
+    const b=group(bv,BIM,BIM_T), q=group(qv,Q4,Q4_T);
+    if(elim==="blocked") return {s:"blocked",label:"Sem dispensa",msg:"",b,q};
+    const bad=[];
+    if(b.state==="bad") bad.push(b.impossible?"Mesmo com 10 no que falta, os bimestres não chegam a 24,0.":`Bimestres somam ${fmt(b.sum)}; faltaram ${fmt(b.falta)} para 24,0.`);
+    if(q.state==="bad") bad.push(q.impossible?"Mesmo com nota máxima no que falta, o 4º bimestre não chega a 3,6.":`4º bimestre soma ${fmt(q.sum)}; faltaram ${fmt(q.falta)} para 3,6.`);
+    if(bad.length) return {s:"bad",label:"Faz a AV2",msg:bad.join(" "),b,q};
+    const pend=[];
+    if(b.state==="pend") pend.push(b.blanks.length===1?`Precisa de pelo menos ${fmt(b.need)} no ${b.blanks[0].l.replace("bim.","bimestre")}.`:`Precisa somar pelo menos ${fmt(b.need)} nos bimestres que faltam.`);
+    if(q.state==="pend") pend.push(q.blanks.length===1?`Precisa de pelo menos ${fmt(q.need)} em ${q.blanks[0].full} (vale até ${fmt(q.blanks[0].max*100)}).`:`Precisa somar pelo menos ${fmt(q.need)} entre ${joinN(q.blanks.map(x=>x.full))}.`);
+    if(pend.length) return {s:"pend",label:"Depende do que falta",msg:pend.join(" "),b,q};
+    if(elim==="unanswered") return {s:"pend",label:"Responda o passo 2",msg:"",b,q};
+    return {s:"ok",label:"Dispensado da AV2",msg:"",b,q};
+  }
+
+  // estado
+  const state={year:null,adv:null,falta:null,raw:{}};
+  try{ const s=JSON.parse(localStorage.getItem(KEY)||"null"); if(s&&s.raw) Object.assign(state,s); }catch(e){}
+  const raw = n => (state.raw[n] = state.raw[n]||{});
+  function save(){ try{ localStorage.setItem(KEY,JSON.stringify(state)); }catch(e){} }
+
+  // anos
+  const yEl=document.getElementById("years");
+  yEl.innerHTML = Object.keys(YEARS).map((y,i)=>`<input type="radio" name="year" id="y${i}" value="${y}"><label for="y${i}">${y}</label>`).join("");
+  yEl.addEventListener("change",e=>{ state.year=e.target.value; build(); });
+
+  // tabela
+  const tEl=document.getElementById("table");
+  function build(){
+    document.querySelectorAll('input[name="year"]').forEach(r=>r.checked = r.value===state.year);
+    if(!state.year){ tEl.innerHTML='<p class="empty">Escolha seu ano no passo 1 para ver as disciplinas.</p>'; render(); return; }
+    const inputs = (n,defs) => defs.map(f=>{ const id=`${slug(n)}-${f.k}`; return `<div class="cell"><label class="flab" for="${id}">${f.l}</label><input id="${id}" data-d="${n}" data-k="${f.k}" inputmode="decimal" autocomplete="off" placeholder="–" aria-label="${n}, ${f.full||f.l} (até ${fmt(f.max*100)})" value="${(raw(n)[f.k]||"").replace(/"/g,"")}"></div>`; }).join("");
+    tEl.innerHTML = `<div class="table">
+      <div class="row head" aria-hidden="true"><span>Disciplina</span><span>1º bim.</span><span>2º bim.</span><span>3º bim.</span><span class="grp">Soma<br>≥ 24</span><span></span><span>Ativ.<br>(1,0)</span><span>Av1<br>(3,0)</span><span>Simul.<br>(2,0)</span><span class="grp">Soma<br>≥ 3,6</span><span>Situação</span></div>
+      ${YEARS[state.year].map(n=>{ const id=slug(n); return `<div class="row" id="r-${id}">
+        <span class="name">${n}</span>
+        ${inputs(n,BIM)}<span class="sum" id="${id}-bs"></span><span class="sep"></span>
+        ${inputs(n,Q4)}<span class="sum" id="${id}-qs"></span>
+        <span class="status" id="${id}-st" aria-live="polite"></span>
+        <p class="msg" id="${id}-msg"></p></div>`; }).join("")}
+    </div>`;
+    render();
+  }
+
+  let results={};
+  function render(){
+    const elim=(state.adv==="s"||state.falta==="s")?"blocked":(state.adv==="n"&&state.falta==="n")?"ok":"unanswered";
+    const list=state.year?YEARS[state.year]:[];
+    const mobile = matchMedia("(max-width:780px)").matches;
+    results={};
+    list.forEach(n=>{
+      const id=slug(n), d={p:{},e:{}};
+      [...BIM,...Q4].forEach(f=>{
+        const r=parse(raw(n)[f.k],f.max); d.p[f.k]=r.err?null:r.v; d.e[f.k]=r.err||"";
+        const inp=document.getElementById(`${id}-${f.k}`); if(inp){ inp.setAttribute("aria-invalid",r.err?"true":"false"); inp.title=r.err||""; }
+      });
+      const res=evaluate(d,elim); results[n]=res;
+      const bAny=BIM.some(f=>d.p[f.k]!==null), qAny=Q4.some(f=>d.p[f.k]!==null);
+      const bs=BIM.reduce((a,f)=>a+(d.p[f.k]||0),0), qs=Q4.reduce((a,f)=>a+(d.p[f.k]||0),0);
+      const bEl=document.getElementById(id+"-bs"), qEl=document.getElementById(id+"-qs");
+      bEl.className="sum "+(res.b&&res.b.state!=="pend"?res.b.state:"");
+      qEl.className="sum "+(res.q&&res.q.state!=="pend"?res.q.state:"");
+      bEl.innerHTML = mobile ? (bAny?`Bimestres: <b>${fmt(bs)}</b> de 24,0`:"") : (bAny?fmt(bs):"–");
+      qEl.innerHTML = mobile ? (qAny?`4º bimestre: <b>${fmt(qs)}</b> de 3,6`:"") : (qAny?fmt(qs):"–");
+      const st=document.getElementById(id+"-st"); st.className="status s-"+res.s; st.innerHTML=`<span class="dot"></span>${res.label}`;
+      const m=document.getElementById(id+"-msg"); m.className="msg s-"+res.s; m.textContent=res.msg;
+      // erros de campo aparecem na mensagem
+      const errs=[...BIM,...Q4].filter(f=>d.e[f.k]).map(f=>`${f.full||f.l}: ${d.e[f.k]}`);
+      if(errs.length) m.textContent=errs.join(" · ");
+    });
+    summary(elim,list);
+    save();
+  }
+
+  function summary(elim,list){
+    const filled=list.filter(n=>results[n].s!=="empty");
+    const ok=filled.filter(n=>results[n].s==="ok").length;
+    const hl=document.getElementById("hl");
+    if(!state.year) hl.textContent="Comece escolhendo seu ano.";
+    else if(elim==="blocked") hl.textContent="Sem dispensa: advertência escrita ou falta sem justificativa impedem a dispensa.";
+    else if(!filled.length) hl.textContent="Digite as notas de pelo menos uma disciplina.";
+    else hl.innerHTML=`Dispensado em <span class="n">${ok}</span> de ${filled.length} ${filled.length===1?"disciplina":"disciplinas"}`+(elim==="unanswered"?" · responda o passo 2":"");
+    document.getElementById("chips").innerHTML = filled.map(n=>`<a class="chip s-${results[n].s}" href="#r-${slug(n)}"><span class="dot"></span>${n}</a>`).join("");
+  }
+
+  // eventos
+  tEl.addEventListener("input",e=>{ const t=e.target; if(!t.dataset.d) return; raw(t.dataset.d)[t.dataset.k]=t.value; render(); });
+  document.querySelectorAll('input[name="adv"],input[name="falta"]').forEach(r=>{ if(state[r.name]===r.value) r.checked=true; r.addEventListener("change",()=>{ state[r.name]=r.value; render(); }); });
+  addEventListener("resize",()=>render());
+
+  document.getElementById("clear").addEventListener("click",()=>{
+    state.adv=state.falta=null; state.raw={};
+    document.querySelectorAll('input[name="adv"],input[name="falta"]').forEach(r=>r.checked=false);
+    build(); flash("Notas apagadas.");
+  });
+  document.getElementById("example").addEventListener("click",()=>{
+    if(!state.year) state.year="8º ano";
+    const ex={"Matemática I":{b1:"8,1",b2:"7,8",b3:"8,1",at:"0,7",av1:"2,3",sim:"0,6"},
+              "Português I":{b1:"8",b2:"8",b3:"7,9",at:"1",av1:"2,5",sim:"1"},
+              "Inglês":{b1:"9",b2:"8,5",b3:"9",at:"0,8",av1:"1,7",sim:""}};
+    Object.keys(ex).forEach(n=>state.raw[n]={...ex[n]});
+    state.adv="n"; state.falta="n"; document.getElementById("adv-n").checked=true; document.getElementById("falta-n").checked=true;
+    build(); flash("Exemplo preenchido em Português I, Matemática I e Inglês.");
+  });
+  document.getElementById("copy").addEventListener("click",async()=>{
+    const list=state.year?YEARS[state.year]:[];
+    const lines=["Simulação da Dispensa Premiada"+(state.year?" · "+state.year:""), document.getElementById("hl").textContent, ""];
+    list.forEach(n=>{ const r=results[n]; if(r&&r.s!=="empty") lines.push(`${n}: ${r.label}${r.msg?" ("+r.msg+")":""}`); });
+    lines.push("","Simulação. O resultado oficial é o divulgado pela escola.");
+    try{ await navigator.clipboard.writeText(lines.join("\n")); flash("Resultado copiado."); }
+    catch(e){ flash("Não foi possível copiar. Tire um print da tela."); }
+  });
+  let tt; function flash(t){ const el=document.getElementById("toast"); el.textContent=t; clearTimeout(tt); tt=setTimeout(()=>el.textContent="",3500); }
+
+  build();
+})();
+</script>
+</body>
+</html>
