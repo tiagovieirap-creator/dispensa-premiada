@@ -170,7 +170,7 @@ footer{font-size:.85rem;color:var(--muted)}
     <span class="step-label" id="l3">3 · Suas notas</span>
     <ul class="rules">
       <li>Soma dos 3 primeiros bimestres: <b>mínimo 24,0</b></li>
-      <li>4º bimestre (Atividades + Av1 + Simulado): <b>mínimo 3,6 de 6,0</b></li>
+      <li>4º bimestre (Atividades + Av1 + Simulado): <b>mínimo 3,3 de 5,5</b></li>
       <li>Sem arredondamento: <b>23,9 não vira 24</b></li>
     </ul>
     <div id="table"></div>
@@ -183,11 +183,11 @@ footer{font-size:.85rem;color:var(--muted)}
       <li><h3>Sem advertência escrita</h3><p>Se você recebeu advertência escrita em qualquer momento do ano letivo, não há dispensa em nenhuma disciplina.</p></li>
       <li><h3>Sem falta sem justificativa no 4º bimestre</h3><p>Uma única falta sem justificativa no 4º bimestre também impede a dispensa em todas as disciplinas. Faltas justificadas não contam.</p></li>
       <li><h3>Bimestres somando 24,0 ou mais</h3><p>Some as notas do 1º, 2º e 3º bimestres (cada uma vale até 10). O total precisa ser <b>igual ou maior que 24,0</b>, o que equivale a média 8,0.</p><p class="calc">8,0 + 7,5 + 8,5 = <b>24,0</b> → atinge</p><p class="calc">8,0 + 8,0 + 7,9 = <b>23,9</b> → não atinge</p></li>
-      <li><h3>4º bimestre com pelo menos 3,6</h3><p>Some os três instrumentos do 4º bimestre: Atividades Educacionais (até 1,0), Av1 (até 3,0) e Simulado (até 2,0). O total vale 6,0, e você precisa de <b>pelo menos 60%</b>, ou seja, 3,6.</p><p class="calc">0,8 + 2,2 + 0,6 = <b>3,6</b> → atinge</p><p class="calc">1,0 + 2,0 + 0,5 = <b>3,5</b> → não atinge</p></li>
+      <li><h3>4º bimestre com pelo menos 3,3</h3><p>Some os três instrumentos do 4º bimestre: Atividades Educacionais (até 1,0), Av1 (até 2,5) e Simulado (até 2,0). O total vale 5,5, e você precisa de <b>pelo menos 60%</b>, ou seja, 3,3.</p><p class="calc">0,8 + 1,9 + 0,6 = <b>3,3</b> → atinge</p><p class="calc">1,0 + 1,8 + 0,4 = <b>3,2</b> → não atinge</p></li>
     </ol>
     <div class="how-notes">
-      <div><h3>Não existe arredondamento</h3><p>As notas são usadas exatamente como foram lançadas. 23,9 continua 23,9, e 3,59 continua 3,59. Nos dois casos, não há dispensa.</p></div>
-      <div><h3>Quando ainda falta uma nota</h3><p>Se um campo fica em branco, o simulador calcula o mínimo que você precisa tirar nele. Exemplo: com Atividades 0,8 e Av1 1,7, você já tem 2,5. Faltam 1,1 para chegar a 3,6, então precisa de pelo menos <b>1,1 no Simulado</b>. Se nem a nota máxima for suficiente, o simulador avisa que não dá mais para alcançar.</p></div>
+      <div><h3>Não existe arredondamento</h3><p>As notas são usadas exatamente como foram lançadas. 23,9 continua 23,9, e 3,29 continua 3,29. Nos dois casos, não há dispensa.</p></div>
+      <div><h3>Quando ainda falta uma nota</h3><p>Se um campo fica em branco, o simulador calcula o mínimo que você precisa tirar nele. Exemplo: com Atividades 0,8 e Av1 1,7, você já tem 2,5. Faltam 0,8 para chegar a 3,3, então precisa de pelo menos <b>0,8 no Simulado</b>. Se nem a nota máxima for suficiente, o simulador avisa que não dá mais para alcançar.</p></div>
     </div>
   </section>
 
@@ -203,8 +203,8 @@ footer{font-size:.85rem;color:var(--muted)}
     "9º ano":["Artes","Biologia","Educação Física","Física","Geografia","História","Inglês","LIV – Projeto de Vida","Matemática I","Matemática II","Português I","Química","Redação"]
   };
   const BIM = [{k:"b1",l:"1º bim.",max:10},{k:"b2",l:"2º bim.",max:10},{k:"b3",l:"3º bim.",max:10}];
-  const Q4  = [{k:"at",l:"Ativ.",full:"Atividades",max:1},{k:"av1",l:"Av1",full:"Av1",max:3},{k:"sim",l:"Simul.",full:"Simulado",max:2}];
-  const BIM_T = 2400, Q4_T = 360;
+  const Q4  = [{k:"at",l:"Ativ.",full:"Atividades",max:1},{k:"av1",l:"Av1",full:"Av1",max:2.5},{k:"sim",l:"Simul.",full:"Simulado",max:2}];
+  const BIM_T = 2400, Q4_T = 330;
   const KEY = "dispensa-premiada-v2";
 
   function parse(raw, max){
@@ -239,7 +239,7 @@ footer{font-size:.85rem;color:var(--muted)}
     if(elim==="blocked") return {s:"blocked",label:"Sem dispensa",msg:"",b,q};
     const bad=[];
     if(b.state==="bad") bad.push(b.impossible?"Mesmo com 10 no que falta, os bimestres não chegam a 24,0.":`Bimestres somam ${fmt(b.sum)}; faltaram ${fmt(b.falta)} para 24,0.`);
-    if(q.state==="bad") bad.push(q.impossible?"Mesmo com nota máxima no que falta, o 4º bimestre não chega a 3,6.":`4º bimestre soma ${fmt(q.sum)}; faltaram ${fmt(q.falta)} para 3,6.`);
+    if(q.state==="bad") bad.push(q.impossible?"Mesmo com nota máxima no que falta, o 4º bimestre não chega a 3,3.":`4º bimestre soma ${fmt(q.sum)}; faltaram ${fmt(q.falta)} para 3,3.`);
     if(bad.length) return {s:"bad",label:"Faz a AV2",msg:bad.join(" "),b,q};
     const pend=[];
     if(b.state==="pend") pend.push(b.blanks.length===1?`Precisa de pelo menos ${fmt(b.need)} no ${b.blanks[0].l.replace("bim.","bimestre")}.`:`Precisa somar pelo menos ${fmt(b.need)} nos bimestres que faltam.`);
@@ -267,7 +267,7 @@ footer{font-size:.85rem;color:var(--muted)}
     if(!state.year){ tEl.innerHTML='<p class="empty">Escolha seu ano no passo 1 para ver as disciplinas.</p>'; render(); return; }
     const inputs = (n,defs) => defs.map(f=>{ const id=`${slug(n)}-${f.k}`; return `<div class="cell"><label class="flab" for="${id}">${f.l}</label><input id="${id}" data-d="${n}" data-k="${f.k}" inputmode="decimal" autocomplete="off" placeholder="–" aria-label="${n}, ${f.full||f.l} (até ${fmt(f.max*100)})" value="${(raw(n)[f.k]||"").replace(/"/g,"")}"></div>`; }).join("");
     tEl.innerHTML = `<div class="table">
-      <div class="row head" aria-hidden="true"><span>Disciplina</span><span>1º bim.</span><span>2º bim.</span><span>3º bim.</span><span class="grp">Soma<br>≥ 24</span><span></span><span>Ativ.<br>(1,0)</span><span>Av1<br>(3,0)</span><span>Simul.<br>(2,0)</span><span class="grp">Soma<br>≥ 3,6</span><span>Situação</span></div>
+      <div class="row head" aria-hidden="true"><span>Disciplina</span><span>1º bim.</span><span>2º bim.</span><span>3º bim.</span><span class="grp">Soma<br>≥ 24</span><span></span><span>Ativ.<br>(1,0)</span><span>Av1<br>(2,5)</span><span>Simul.<br>(2,0)</span><span class="grp">Soma<br>≥ 3,3</span><span>Situação</span></div>
       ${YEARS[state.year].map(n=>{ const id=slug(n); return `<div class="row" id="r-${id}">
         <span class="name">${n}</span>
         ${inputs(n,BIM)}<span class="sum" id="${id}-bs"></span><span class="sep"></span>
@@ -297,7 +297,7 @@ footer{font-size:.85rem;color:var(--muted)}
       bEl.className="sum "+(res.b&&res.b.state!=="pend"?res.b.state:"");
       qEl.className="sum "+(res.q&&res.q.state!=="pend"?res.q.state:"");
       bEl.innerHTML = mobile ? (bAny?`Bimestres: <b>${fmt(bs)}</b> de 24,0`:"") : (bAny?fmt(bs):"–");
-      qEl.innerHTML = mobile ? (qAny?`4º bimestre: <b>${fmt(qs)}</b> de 3,6`:"") : (qAny?fmt(qs):"–");
+      qEl.innerHTML = mobile ? (qAny?`4º bimestre: <b>${fmt(qs)}</b> de 3,3`:"") : (qAny?fmt(qs):"–");
       const st=document.getElementById(id+"-st"); st.className="status s-"+res.s; st.innerHTML=`<span class="dot"></span>${res.label}`;
       const m=document.getElementById(id+"-msg"); m.className="msg s-"+res.s; m.textContent=res.msg;
       // erros de campo aparecem na mensagem
